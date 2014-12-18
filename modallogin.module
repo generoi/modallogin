@@ -177,6 +177,7 @@ function modallogin_user_account_form($form, &$form_state) {
   // Core also checks to make sure that you have the hash in a url parameter.
   // As we want to be able to change the passport at anytime we allow this.
   $pass_reset = isset($_SESSION['pass_reset_' . $user->uid]);
+  // @TODO The $_GET is required so that varnish doesnt cache the page.
 
   // @TODO if the user closes the browser without setting the password they
   // cannot log back in without resetting the password.
