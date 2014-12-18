@@ -41,8 +41,6 @@ function theme_modallogin_link($variables) {
 
 /**
  * Returns all the form modals (displayed but hidden for each signed out user).
- *
- * @TODO VARNISH!
  */
 function theme_modallogin($variables) {
   $build['modallogin-login'] = array(
@@ -66,6 +64,7 @@ function theme_modallogin($variables) {
 function theme_modallogin_login($variables) {
   module_load_include('inc', 'user', 'user.pages');
   $form = drupal_get_form('user_login');
+  // Dont use the template faile.
   unset($form['#theme']);
   // Make the form cachable @TODO
   unset($form['#token']);

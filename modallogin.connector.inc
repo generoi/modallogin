@@ -89,8 +89,8 @@ function _modallogin_connector_log_in($connector_name, $cid = NULL, $consumer = 
 function _modallogin_create_login_action($action, $account, $connector) {
   // Redirect user to the page they were on or Drupal specified they were going to.
   // @TODO this is never set.
-  $destination = $_COOKIE['Drupal_visitor_current_uri'];
-  if (!drupal_valid_path($destination)) {
+  $destination = !empty($_COOKIE['Drupal_visitor_current_uri']) ? $_COOKIE['Drupal_visitor_current_uri'] : FALSE;
+  if (!$destination || !drupal_valid_path($destination)) {
     $destination = '<front>';
   }
   $destination_query = array();

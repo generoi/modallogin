@@ -186,7 +186,7 @@ function modallogin_user_account_form($form, &$form_state) {
   $set_name = !empty($user->data['modallogin_no_name']);
 
   // Everything is set, exit.
-  if (!$pass_reset && !$set_name) {
+  if (!$set_pass && !$set_name) {
     return $form;
   }
 
@@ -247,7 +247,9 @@ function modallogin_user_account_form_submit($form, &$form_state) {
   $user = $form_state['user'];
   $user->data['modallogin_no_pass'] = FALSE;
   $user->data['modallogin_no_name'] = FALSE;
-  user_save($user);
+  $values = $form_state['values'];
+  $values['data'] = $user->data;
+  user_save($user, $values);
   rules_invoke_event('modallogin_user_account_set', $user);
 }
 
@@ -334,7 +336,7 @@ function modallogin_oauth_common_authorized($consumer, $access_token, $request_t
     // Associate a new connector entry with them
     else if ($existing->rowCount() == 1) {
       $existing_uid = $existing->fetchField();
-      drupal_set_message(t('You have already registered on this site with your @email email. Your regular account is now connected.', array('email' => $external_mail)));
+      drupal_set_message(t('You have already registered on this site with your @email email. Your regular account is now connected.', array('@email' => $external_mail)));
       _connector_add_connection($connector_name, $external_uid, $existing_uid);
     }
   }
