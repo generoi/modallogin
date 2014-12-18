@@ -1,0 +1,340 @@
+<?php
+
+/**
+ * @file modallogin.module
+ */
+
+/**
+ * Connector hooks for oauth_connector and connector integrations.
+ */
+require_once 'modallogin.connector.inc';
+
+/**
+ * Implements hook_module_implements_alter().
+ *
+ * @see modallogin_oauth_common_authorized().
+ */
+function modallogin_module_implements_alter(&$implementations, $hook) {
+  switch ($hook) {
+    case 'oauth_common_authorized':
+      // Move our module to the top of the list
+      $group = array('modallogin' => $implementations['modallogin']);
+      unset($implementations['modallogin']);
+      $implementations = $group + $implementations;
+      break;
+  }
+}
+
+/**
+ * Implements hook_menu_alter().
+ *
+ * @see logintoboggan_resend_validation().
+ * @see modallogin_resend_validation().
+ */
+function modallogin_menu_alter(&$items) {
+  $items['toboggan/revalidate/%user']['page callback'] = 'modallogin_resend_validation';
+}
+/**
+ * Implements hook_page_build().
+ */
+function modallogin_page_build(&$page) {
+  drupal_add_js(drupal_get_path('module', 'modallogin') . '/modallogin.js');
+  drupal_add_css(drupal_get_path('module', 'modallogin') . '/modallogin.css');
+
+  // For logged out users, display all the modal forms.
+  if (!user_is_logged_in()) {
+    $page['content']['modallogin'] = array(
+      '#theme' => 'modallogin',
+      '#weight' => 1000,
+    );
+  }
+  else {
+    global $user;
+
+    // Check if the user just registered without a password
+    $pass_reset = isset($_SESSION['pass_reset_' . $user->uid]);
+    $pre_auth = _modallogin_pre_auth($user);
+    $visitor_registration = variable_get('user_register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL) == USER_REGISTER_VISITORS;
+
+    $set_pass = !empty($user->data['modallogin_no_pass']) && $pass_reset;
+    $set_name = !empty($user->data['modallogin_no_name']);
+
+    // User has not set the password (or username) yet.
+    if ($set_pass || $set_name) {
+      $page['content']['modallogin_account'] = array(
+        '#theme' => 'modallogin_account',
+        '#weight' => 1000,
+      );
+    }
+    // User has set the necessary account information and received the validate 
+    // link in an email (rule). Remind them that they need to click it.
+    else if ($pre_auth && $visitor_registration) {
+      drupal_set_message(t('A validation e-mail has been sent to your e-mail address. You will need to follow the instructions in that message in order to gain full access to the site. !link', array(
+        '!link' => l(t('Click here to resend the validation e-mail.'), "toboggan/revalidate/$user->uid"),
+      )));
+    }
+  }
+}
+
+/**
+ * Is the user a pre-auth user (registered but in limbo mode until email is
+ * validated). If no user is passed we check if preauth settings is configured.
+ */
+function _modallogin_pre_auth($user = FALSE) {
+  $validating_rid = logintoboggan_validating_id();
+  $pre_auth = !variable_get('user_email_verification', TRUE) && $validating_rid != DRUPAL_AUTHENTICATED_RID;
+  if (!$pre_auth) {
+    return FALSE;
+  }
+  return $user ? array_key_exists($validating_rid, $user->roles) : $pre_auth;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function modallogin_theme() {
+  $base = array('file' => 'modallogin.theme.inc');
+
+  return array(
+    'modallogin' => array(
+      'variables' => array('data' => NULL),
+    ) + $base,
+    'modallogin_reveal' => array(
+      'variables' => array('attributes' => array(), 'content' => NULL, 'close_button' => TRUE),
+    ) + $base,
+    'modallogin_link' => array(
+      'variables' => array('target_id' => NULL, 'path' => NULL, 'options' => array('attributes' => array(), 'html' => FALSE), 'text' => NULL),
+    ) + $base,
+    'modallogin_login' => array(
+      'variables' => array('data' => NULL),
+    ) + $base,
+    'modallogin_register' => array(
+      'variables' => array('data' => NULL),
+    ) + $base,
+    'modallogin_reset_password' => array(
+      'variables' => array('data' => NULL),
+    ) + $base,
+    'modallogin_account' => array(
+      'variables' => array('data' => NULL),
+    ) + $base,
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function modallogin_form_user_pass_alter(&$form, &$form_state) {
+  unset($form['name']['#description']);
+  unset($form['pass']['#description']);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function modallogin_form_user_pass_reset_alter(&$form, &$form_state) {
+  unset($form['name']['#description']);
+  unset($form['pass']['#description']);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function modallogin_form_user_login_alter(&$form, &$form_state) {
+  unset($form['name']['#description']);
+  unset($form['pass']['#description']);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function modallogin_form_user_register_form_alter(&$form, &$form_state) {
+  unset($form['name']['#description']);
+  unset($form['pass']['#description']);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function modallogin_form_user_profile_form_alter(&$form, &$form_state) {
+  $user = $form_state['user'];
+
+  // If users have not set the name yet, there is a temporary one generated 
+  // from their email, dont display the default value so they're force to set 
+  // it.
+  $set_name = !empty($user->data['modallogin_no_name']);
+  if ($set_name) {
+    $form['account']['name']['#default_value'] = '';
+    $form['account']['name']['#access'] = TRUE;
+  }
+}
+
+/**
+ * Form builder; A simple form for setting required account data.
+ */
+function modallogin_user_account_form($form, &$form_state) {
+  global $user;
+
+  // Core also checks to make sure that you have the hash in a url parameter.
+  // As we want to be able to change the passport at anytime we allow this.
+  $pass_reset = isset($_SESSION['pass_reset_' . $user->uid]);
+
+  // @TODO if the user closes the browser without setting the password they
+  // cannot log back in without resetting the password.
+
+  $set_pass = !empty($user->data['modallogin_no_pass']) && $pass_reset;
+  $set_name = !empty($user->data['modallogin_no_name']);
+
+  // Everything is set, exit.
+  if (!$pass_reset && !$set_name) {
+    return $form;
+  }
+
+  // Load inc for user_profile_form_submit().
+  form_load_include($form_state, 'inc', 'user', 'user.pages');
+
+  $form['#user'] = $form_state['user'] = $user;
+  $form['#user_category'] = 'account';
+  $form['#validate'][] = 'user_account_form_validate';
+  $form['#submit'][] = 'user_profile_form_submit';
+  $form['#submit'][] = 'modallogin_user_account_form_submit';
+
+  // Account information.
+  $form['account'] = array(
+    '#type' => 'container',
+    '#weight' => -10,
+  );
+
+  if ($set_name) {
+    $form['account']['name'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Username'),
+      '#maxlength' => USERNAME_MAX_LENGTH,
+      '#description' => t('Spaces are allowed; punctuation is not allowed except for periods, hyphens, apostrophes, and underscores.'),
+      '#required' => TRUE,
+      '#attributes' => array('class' => array('username')),
+      '#default_value' => '',
+    );
+  }
+
+  if ($set_pass) {
+    $form['account']['pass'] = array(
+      '#type' => 'password_confirm',
+      '#size' => 25,
+      '#required' => TRUE,
+    );
+  }
+
+  // @TODO injection? We THINK drupal checks that this isn't changed with JS.
+  $form['account']['mail'] = array(
+    '#type' => 'value',
+    '#default_value' => $user->mail,
+  );
+
+  $form['actions'] = array('#type' => 'actions');
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  return $form;
+}
+
+/**
+ * Form callback; Remove the users missing data state and save it.
+ */
+function modallogin_user_account_form_submit($form, &$form_state) {
+  $user = $form_state['user'];
+  $user->data['modallogin_no_pass'] = FALSE;
+  $user->data['modallogin_no_name'] = FALSE;
+  user_save($user);
+  rules_invoke_event('modallogin_user_account_set', $user);
+}
+
+/**
+ * Menu callback; replacing logintoboggans version without a duplicate
+ * drupal_set_message() and our custom rule email.
+ *
+ * @see logintoboggan_resend_validation().
+ */
+function modallogin_resend_validation($account) {
+  // _user_mail_notify('register_no_approval_required', $account);
+  rules_invoke_event('modallogin_create_login_verify', $account);
+
+  // Notify admin or user that e-mail was sent and return to user edit form.
+  if (user_access('administer users')) {
+    drupal_set_message(t("A validation e-mail has been sent to the user's e-mail address."));
+  }
+  else {
+    // We already prompt this in modallogin_init().
+    // drupal_set_message(t('A validation e-mail has been sent to your e-mail address. You will need to follow the instructions in that message in order to gain full access to the site.'));
+  }
+
+  // @TODO where to send them?
+  drupal_goto('<front>');
+}
+
+/**
+ * Implements hook_oauth_common_authorized().
+ *
+ * Creates an association between the connector used and an existing Drupal
+ * account (if it doesn't exist already in authmap).
+ *
+ * Using some introductory logic from oauthconnector_oauth_common_authorized,
+ * we get the $external_uid (i.e. the unique id of the external provider).
+ * With this $external_uid, we see if the user has logged in before using this
+ * connector. If not, and if there is an existing account we can associate with
+ * it, then create the new connector in authmap. We let
+ * oauthconnector_oauth_common_authorized take care of logging the user in
+ * because it is called during the module_invoke_all after this function.
+ */
+function modallogin_oauth_common_authorized($consumer, $access_token, $request_token) {
+  global $user;
+
+  if ($_SESSION['oauthconnector_request_key'] != $request_token->key) {
+    return;
+  }
+
+  $providers = oauthconnector_provider_load_all();
+  foreach ($providers as $provider) {
+    if ($provider->csid != $consumer->csid) {
+      continue;
+    }
+
+    $external_uid = _oauthconnector_fetch_field('uid', $provider, $access_token, $consumer);
+    $external_mail = _oauthconnector_fetch_field('email', $provider, $access_token, $consumer);
+    if (empty($external_uid) || empty($external_mail)) {
+      continue;
+    }
+
+    $connector_name = 'oauthconnector_' . $provider->name;
+    $authname = $connector_name . '__' . $external_uid;
+
+    // Check if this user has already logged in before using this connector
+    $uid = db_query("SELECT uid FROM {authmap} WHERE authname = :authname", array(':authname' => $authname))->fetchField();
+    if ($uid) {
+      continue;
+    }
+
+    // Check whether a user exists with this external_uid
+    // Note: This check assumes 'mail' holds that same external_uid or we
+    // could check a user field.
+    $existing = db_select('users', 'u')
+      ->fields('u', array('uid'))
+      ->condition('mail', $external_mail)
+      ->execute();
+
+    if ($existing->rowCount() > 1) {
+      watchdog('connector', 'modallogin_oauth_common_authorized found more than one user with id @id ', array('@id' => $external_uid), WATCHDOG_ERROR);
+      // Unset this so oauthconnector_oauth_common_authorized() fails instead
+      // of creating a user without an email.
+      unset($_SESSION['oauthconnector_request_key']);
+      drupal_set_message(t('The email address connected to this account is already in use.'));
+    }
+    // Associate a new connector entry with them
+    else if ($existing->rowCount() == 1) {
+      $existing_uid = $existing->fetchField();
+      drupal_set_message(t('You have already registered on this site with your @email email. Your regular account is now connected.', array('email' => $external_mail)));
+      _connector_add_connection($connector_name, $external_uid, $existing_uid);
+    }
+  }
+}

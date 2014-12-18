@@ -1,0 +1,9 @@
+name = Modal Login
+description = TODO: Description of module
+dependencies[] = logintoboggan
+dependencies[] = oauthconnector
+dependencies[] = connector
+dependencies[] = rules
+dependencies[] = user
+package = custom
+core = 7.x

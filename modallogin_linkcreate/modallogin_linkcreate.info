@@ -1,0 +1,5 @@
+name = Modal Login Link Account Creator
+description = TODO: Description of module
+dependencies[] = modallogin
+package = custom
+core = 7.x

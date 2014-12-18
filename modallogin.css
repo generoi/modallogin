@@ -1,0 +1,79 @@
+@media screen and (min-width: 600px){
+  .modallogin-modal {
+    width: 500px !important;
+    margin-left: -250px !important;
+  }
+}
+.modallogin-modal .connector-block {
+  text-align: center;
+}
+.modallogin-modal .links {
+  border-top: solid 1px #DADADA;
+  padding-top: 1em;
+}
+.modallogin-modal .links a {
+  margin-right: 1em;
+}
+/**
+ * Password strength indicator.
+ */
+.reveal-modal .password-strength {
+  width: 10em;
+  float: right;  /* LTR */
+  margin-top: 0;
+}
+.reveal-modal .password-strength-title {
+  display: inline;
+}
+.reveal-modal .password-strength-text {
+  float: right; /* LTR */
+  font-weight: bold;
+}
+.reveal-modal .password-indicator {
+  background-color: #C4C4C4;
+  height: 0.3em;
+  width: 100%;
+}
+.reveal-modal .password-indicator div {
+  height: 100%;
+  width: 0%;
+  background-color: #47C965;
+}
+.reveal-modal input.password-confirm,
+.reveal-modal input.password-field {
+  width: 100%;
+  margin-bottom: 0.4em;
+}
+.reveal-modal div.password-confirm {
+  float: right;  /* LTR */
+  width: 10em;
+  visibility: hidden;
+}
+.reveal-modal div.password-confirm .error {
+  display: inline-block;
+  background-color: transparent;
+  color: inherit;
+  font-size: inherit;
+  padding: 0;
+  margin: 0;
+  font-style: inherit;
+  float: right; /* LTR */
+  font-weight: bold;
+}
+.reveal-modal div.form-item div.password-suggestions {
+  padding: 0.2em 0.5em;
+  margin: 0.7em 0;
+}
+.reveal-modal div.password-suggestions,
+.reveal-modal div.password-suggestions li {
+  font-size: 1rem;
+}
+.reveal-modal div.password-suggestions ul {
+  margin-bottom: 0;
+  list-style-type: disc;
+}
+.reveal-modal .confirm-parent,
+.reveal-modal .password-parent {
+  clear: left; /* LTR */
+  margin: 0;
+}

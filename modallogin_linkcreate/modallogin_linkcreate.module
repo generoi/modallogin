@@ -1,0 +1,99 @@
+<?php
+
+/**
+ * Validity of a create account link. Defaults to 7 days.
+ */
+define('MODALLOGIN_LINKCREATE_CREATE_TIMEOUT', 604800);
+
+/**
+ * Implements hook_menu().
+ */
+function modallogin_linkcreate_menu() {
+  $items['signup/link/%'] = array(
+    'title' => 'Sign up',
+    'page callback' => 'modallogin_linkcreate_create',
+    'page arguments' => array(2),
+    'access callback' => 'modallogin_linkcreate_create_access',
+    'access arguments' => array(2),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_init().
+ *
+ * Disable caching for the pages.
+ */
+function modallogin_linkcreate_init() {
+  if (strpos(current_path(), 'signup/link') === 0) {
+    drupal_page_is_cacheable(FALSE);
+    // Also tell varnish not to cache.
+    if (!isset($_COOKIE['NO_CACHE'])) {
+      global $cookie_domain;
+      setcookie('NO_CACHE', 'Y', $_SERVER['REQUEST_TIME'] + 300, request_uri(), $cookie_domain);
+    }
+  }
+}
+
+/**
+ * Acccess callback
+ */
+function modallogin_linkcreate_create_access($timestamp) {
+  return $timestamp < REQUEST_TIME && !empty($_GET['mail']) && !user_is_logged_in();
+}
+
+/**
+ * Menu callback; Create the user account and display the modal where users can 
+ * set their username and password.
+ */
+function modallogin_linkcreate_create($timestamp) {
+  $timeout = variable_get('modallogin_linkcreate_create_timeout', MODALLOGIN_LINKCREATE_CREATE_TIMEOUT);
+  $mail = trim($_GET['mail']);
+  $failure = FALSE;
+
+  if (REQUEST_TIME - $timestamp > $timeout) {
+    drupal_set_message(t('You have tried to use a one-time login link that has expired. Please register manually.'));
+    $failure = TRUE;
+  }
+
+  if ($error = user_validate_mail($mail)) {
+    drupal_set_message($error . ' ' . t('Please register manually.'));
+    $failure = TRUE;
+  }
+
+  // Check if the email is taken by an existing user.
+  if ((bool) db_select('users')->fields('users', array('uid'))->condition('mail', db_like($mail), 'LIKE')->range(0, 1)->execute()->fetchField()) {
+    drupal_set_message(t('The e-mail address %email is already registered. <a href="@password" data-reveal-id="modallogin-reset">Have you forgotten your password?</a>', array('%email' => $mail, '@password' => url('user/password'))));
+    $failure = TRUE;
+  }
+
+  if ($failure) {
+    drupal_goto(current_path(), array('fragment' => 'reveal_modallogin-register'));
+  }
+
+  $pass = user_password(16);
+  $name = preg_replace("/[^a-zA-Z 0-9]+/", "-", $mail);
+  $validating_rid = logintoboggan_validating_id();
+
+  $fields = array(
+    'name' => $name,
+    'pass' => $pass,
+    'mail' => $mail,
+    'status' => 1,
+    'init' => $mail,
+    'roles' => array($validating_rid => TRUE),
+    'data' => array('modallogin_no_name' => TRUE, 'modallogin_no_pass' => TRUE),
+    'timezone' => variable_get('date_default_timezone', ''),
+  );
+  $account = user_save('', $fields);
+
+  // Log in the user
+  global $user;
+  $user = $account;
+  user_login_finalize();
+  // Let the user's password be changed without the current password check.
+  $token = drupal_random_key();
+  $_SESSION['pass_reset_' . $user->uid] = $token;
+
+  drupal_goto('<front>', array('query' => array('pass-reset-token' => $token)));
+}
