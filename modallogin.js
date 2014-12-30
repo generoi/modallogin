@@ -50,6 +50,7 @@
     var refreshDefer = $.Deferred();
     // Trigger once only.
     $(document).off('opened.fndtn.reveal', '[data-reveal]', Drupal.modallogin.refreshForms);
+    Drupal.modallogin.storeSourceUrlCookie();
 
     var forms = []
       , form_ids = [];
@@ -99,5 +100,14 @@
       $input.val(form.build_id);
       console.debug('modallogin: refreshed form: %s', form.id);
     }
+  };
+
+  Drupal.modallogin.storeSourceUrlCookie = function() {
+    var pathStart = Drupal.settings.basePath.length + Drupal.settings.pathPrefix.length
+      , path = location.pathname.slice(pathStart);
+
+    if (!path.length) path = '<front>';
+
+    $.cookie('modallogin_source', path, { path: '/' });
   };
 }(jQuery));

@@ -69,6 +69,7 @@ function modallogin_menu_alter(&$items) {
 function modallogin_page_build(&$page) {
   drupal_add_js(drupal_get_path('module', 'modallogin') . '/modallogin.js');
   drupal_add_css(drupal_get_path('module', 'modallogin') . '/modallogin.css');
+  drupal_add_library('system', 'jquery.cookie');
 
   // For logged out users, display all the modal forms.
   if (!user_is_logged_in()) {
@@ -179,6 +180,22 @@ function modallogin_form_user_login_alter(&$form, &$form_state) {
 function modallogin_form_user_register_form_alter(&$form, &$form_state) {
   unset($form['name']['#description']);
   unset($form['pass']['#description']);
+}
+
+/**
+ * Implements hook_user_login().
+ *
+ * On login, redirect to the previous page.
+ */
+function modallogin_user_login(&$edit, $account) {
+  $destination = !empty($_COOKIE['modallogin_source']) ? $_COOKIE['modallogin_source'] : FALSE;
+  if (isset($_GET['destination'])) {
+    $destination = $_GET['destination'];
+  }
+
+  if (drupal_valid_path($destination)) {
+    $edit['redirect'] = $destination;
+  }
 }
 
 /**
