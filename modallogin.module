@@ -220,13 +220,10 @@ function modallogin_form_user_profile_form_alter(&$form, &$form_state) {
 function modallogin_user_account_form($form, &$form_state) {
   global $user;
 
-  // Core also checks to make sure that you have the hash in a url parameter.
-  // As we want to be able to change the passport at anytime we allow this.
-  $pass_reset = isset($_SESSION['pass_reset_' . $user->uid]);
-  // @TODO The $_GET is required so that varnish doesnt cache the page.
-
-  // @TODO if the user closes the browser without setting the password they
+  // @see user_account_form().
+  // Note: if the user closes the browser without setting the password they
   // cannot log back in without resetting the password.
+  $pass_reset = isset($_SESSION['pass_reset_' . $user->uid]) && isset($_GET['pass-reset-token']) && ($_GET['pass-reset-token'] == $_SESSION['pass_reset_' . $user->uid]);
 
   $set_pass = !empty($user->data['modallogin_no_pass']) && $pass_reset;
   $set_name = !empty($user->data['modallogin_no_name']);
@@ -271,7 +268,6 @@ function modallogin_user_account_form($form, &$form_state) {
     );
   }
 
-  // @TODO injection? We THINK drupal checks that this isn't changed with JS.
   $form['account']['mail'] = array(
     '#type' => 'value',
     '#default_value' => $user->mail,
