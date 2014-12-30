@@ -66,8 +66,6 @@ function theme_modallogin_login($variables) {
   $form = drupal_get_form('user_login');
   // Dont use the template faile.
   unset($form['#theme']);
-  // Make the form cachable @TODO
-  unset($form['#token']);
 
   $form['links'] = array(
     '#type' => 'container',
@@ -111,8 +109,6 @@ function theme_modallogin_login($variables) {
 function theme_modallogin_register($variables) {
   $form = drupal_get_form('user_register_form');
   unset($form['#theme']);
-  // Make the form cachable @TODO
-  unset($form['#token']);
   // @TODO use custom submit and validation handlers same as 
   // modallogin_linkcreate so that we can create users without names and 
   // passwords.
@@ -159,8 +155,6 @@ function theme_modallogin_register($variables) {
 function theme_modallogin_reset_password($variables) {
   $form = drupal_get_form('user_pass');
   unset($form['#theme']);
-  // Make the form cachable @TODO
-  unset($form['#token']);
 
   $form['links'] = array(
     '#type' => 'container',

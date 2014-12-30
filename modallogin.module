@@ -26,6 +26,35 @@ function modallogin_module_implements_alter(&$implementations, $hook) {
 }
 
 /**
+ * Implements hook_menu().
+ */
+function modallogin_menu() {
+  $items['modallogin/refresh_form'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => 'modallogin_refresh_form',
+    'delivery callback' => 'drupal_json_output',
+    'access arguments' => array('access content'),
+  );
+  return $items;
+}
+
+/**
+ * Page callback; Refresh forms.
+ */
+function modallogin_refresh_form() {
+  if (empty($_POST['forms'])) {
+    return;
+  }
+  $forms = array();
+  foreach ($_POST['forms'] as $form) {
+    $form_id = check_plain($form['form_id']);
+    $form = drupal_get_form($form_id);
+    $forms[] = array('id' => $form['#id'], 'form_id' => $form_id, 'build_id' => $form['#build_id']);
+  }
+  return $forms;
+}
+
+/**
  * Implements hook_menu_alter().
  *
  * @see logintoboggan_resend_validation().
@@ -66,7 +95,7 @@ function modallogin_page_build(&$page) {
         '#weight' => 1000,
       );
     }
-    // User has set the necessary account information and received the validate 
+    // User has set the necessary account information and received the validate
     // link in an email (rule). Remind them that they need to click it.
     else if ($pre_auth && $visitor_registration) {
       drupal_set_message(t('A validation e-mail has been sent to your e-mail address. You will need to follow the instructions in that message in order to gain full access to the site. !link', array(
@@ -158,8 +187,8 @@ function modallogin_form_user_register_form_alter(&$form, &$form_state) {
 function modallogin_form_user_profile_form_alter(&$form, &$form_state) {
   $user = $form_state['user'];
 
-  // If users have not set the name yet, there is a temporary one generated 
-  // from their email, dont display the default value so they're force to set 
+  // If users have not set the name yet, there is a temporary one generated
+  // from their email, dont display the default value so they're force to set
   // it.
   $set_name = !empty($user->data['modallogin_no_name']);
   if ($set_name) {
