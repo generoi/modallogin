@@ -10,7 +10,7 @@
       $(document).on('ready', function () {
         $.ajax({
           url: '/modallogin/forms',
-          dataType: 'html',
+          dataType: 'html'
         })
         .done(function(data) {
 
