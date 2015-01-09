@@ -67,6 +67,11 @@ function modallogin_menu_alter(&$items) {
  * Implements hook_page_build().
  */
 function modallogin_page_build(&$page) {
+  // If page is 404 do nothing.
+  if (drupal_get_http_header('status') == '404 Not Found') {
+    return;
+  }
+
   drupal_add_js(drupal_get_path('module', 'modallogin') . '/modallogin.js');
   drupal_add_css(drupal_get_path('module', 'modallogin') . '/modallogin.css');
   drupal_add_library('system', 'jquery.cookie');
