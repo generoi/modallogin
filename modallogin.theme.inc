@@ -11,7 +11,7 @@ function theme_modallogin_reveal($variables) {
   $variables['attributes'] += array(
     'class' => array(),
     // Required for foundation reveal.
-    'data-reveal' => '',
+    'data-reveal' => 'true',
   );
   // Set the ID, do not use drupal_html_id as links will be pointing to this.
   $variables['attributes']['id'] = $id;
@@ -30,7 +30,7 @@ function theme_modallogin_reveal($variables) {
 /**
  * Returns the HTML for a link triggering a reveal modal.
  *
- * Same parameters as theme_link with an additional $target_id that states 
+ * Same parameters as theme_link with an additional $target_id that states
  * which reveal modal to display. Must be specified as the HTML id.
  * Eg. modallogin-login
  */
@@ -109,8 +109,8 @@ function theme_modallogin_login($variables) {
 function theme_modallogin_register($variables) {
   $form = drupal_get_form('user_register_form');
   unset($form['#theme']);
-  // @TODO use custom submit and validation handlers same as 
-  // modallogin_linkcreate so that we can create users without names and 
+  // @TODO use custom submit and validation handlers same as
+  // modallogin_linkcreate so that we can create users without names and
   // passwords.
   //
   // $form['picture']['#access'] = FALSE;
@@ -162,6 +162,11 @@ function theme_modallogin_reset_password($variables) {
     '#weight' => 1000,
   );
 
+  // Hack to change the form action
+  // from modallogin/forms.
+  global $language;
+  $form['#action'] = '/' . $language->language;
+
   if (variable_get('user_register')) {
     $form['links']['register'] = array(
       '#theme' => 'modallogin_link',
@@ -186,8 +191,8 @@ function theme_modallogin_reset_password($variables) {
 }
 
 /**
- * Edit account modal. Used as a method to not to require users to set 
- * usernam/password while registering, but force them to set it as soon as they 
+ * Edit account modal. Used as a method to not to require users to set
+ * usernam/password while registering, but force them to set it as soon as they
  * have an account (the next page load).
  *
  * @see modallogin_user_account_form().

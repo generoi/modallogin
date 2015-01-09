@@ -6,41 +6,59 @@
         , auto_open = settings && settings.open || []
         , $reveal;
 
-      if (!$.fn.foundation || this.processed) {
-        return;
-      }
-      this.processed = true;
+      // Ajax load forms.
+      $(document).on('ready', function () {
+        $.ajax({
+          url: '/modallogin/forms',
+          dataType: 'html',
+        })
+        .done(function(data) {
 
-      for (var id in auto_open) if (auto_open.hasOwnProperty(id)) {
-        var options = auto_open[id];
+          $('body').append(data);
 
-        console.debug('modallogin: auto open modal set in code: %s', id);
-        $('#' + id).foundation('reveal', 'open');
-      }
+            if (!$.fn.foundation || this.processed) {
+              return;
+            }
+            this.processed = true;
 
-      // Automatically open a "linked" modal.
-      if (hash.indexOf('reveal_') === 1) {
-        // transform #reveal_modallogin-login to #modallogin-login.reveal-modal
-        $reveal = $('#' + hash.split('reveal_')[1] + '.reveal-modal');
-        if ($reveal.length) {
-          console.debug('modallogin: auto open linked modal: %s', hash);
-          $reveal.foundation('reveal', 'open');
-        }
-      }
+            for (var id in auto_open) if (auto_open.hasOwnProperty(id)) {
+              var options = auto_open[id];
 
-      // Update the hash when a modal is opened so we can link to them.
-      $(document).on('opened.fndtn.reveal', '[data-reveal]', function () {
-        console.debug('modallogin: set hash to %s', this.id);
-        window.location.hash = 'reveal_' + this.id;
+              console.debug('modallogin: auto open modal set in code: %s', id);
+              $('#' + id).foundation('reveal', 'open');
+            }
+
+            // Automatically open a "linked" modal.
+            if (hash.indexOf('reveal_') === 1) {
+              // transform #reveal_modallogin-login to #modallogin-login.reveal-modal
+              $reveal = $('#' + hash.split('reveal_')[1] + '.reveal-modal');
+              if ($reveal.length) {
+                console.debug('modallogin: auto open linked modal: %s', hash);
+                $reveal.foundation('reveal', 'open');
+              }
+            }
+
+            // Reload foundation.
+            $(document).foundation();
+
+            // Update the hash when a modal is opened so we can link to them.
+            $(document).on('opened.fndtn.reveal', '[data-reveal]', function () {
+              console.debug('modallogin: set hash to %s', this.id);
+              window.location.hash = 'reveal_' + this.id;
+            });
+            // Update the hash when a modal is closed so it doesnt reappear on refresh.
+            $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
+              console.debug('modallogin: remove hash of %s', this.id);
+              window.location.hash = '';
+            });
+
+            // Refresh the form id.
+            $(document).one('opened.fndtn.reveal', '[data-reveal]', Drupal.modallogin.refreshForms);
+
+
+        });
       });
-      // Update the hash when a modal is closed so it doesnt reappear on refresh.
-      $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
-        console.debug('modallogin: remove hash of %s', this.id);
-        window.location.hash = '';
-      });
 
-      // Refresh the form id.
-      $(document).one('opened.fndtn.reveal', '[data-reveal]', Drupal.modallogin.refreshForms);
     }
   };
 

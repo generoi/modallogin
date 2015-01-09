@@ -29,6 +29,12 @@ function modallogin_module_implements_alter(&$implementations, $hook) {
  * Implements hook_menu().
  */
 function modallogin_menu() {
+  $items['modallogin/forms'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => 'modallogin_forms',
+    'delivery callback' => 'modallogin_ajax_callback',
+    'access arguments' => array('access content'),
+  );
   $items['modallogin/refresh_form'] = array(
     'type' => MENU_CALLBACK,
     'page callback' => 'modallogin_refresh_form',
@@ -36,6 +42,26 @@ function modallogin_menu() {
     'access arguments' => array('access content'),
   );
   return $items;
+}
+
+/**
+ * Delivery callback; Only load the content and skip rest of the page.
+ */
+function modallogin_ajax_callback($page_callback_result) {
+  print $page_callback_result;
+  drupal_page_footer();
+}
+
+/**
+ * Page callback; Load user registration, user loagin and password reset forms.
+ */
+function modallogin_forms() {
+  if (!user_is_logged_in()) {
+    return theme('modallogin');
+  }
+  else {
+    return '';
+  }
 }
 
 /**
@@ -76,14 +102,7 @@ function modallogin_page_build(&$page) {
   drupal_add_css(drupal_get_path('module', 'modallogin') . '/modallogin.css');
   drupal_add_library('system', 'jquery.cookie');
 
-  // For logged out users, display all the modal forms.
-  if (!user_is_logged_in()) {
-    $page['content']['modallogin'] = array(
-      '#theme' => 'modallogin',
-      '#weight' => 1000,
-    );
-  }
-  else {
+  if (user_is_logged_in()) {
     global $user;
 
     // Check if the user just registered without a password
