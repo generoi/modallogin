@@ -153,6 +153,7 @@ function theme_modallogin_register($variables) {
  * @see user_pass().
  */
 function theme_modallogin_reset_password($variables) {
+  module_load_include('inc', 'user', 'user.pages');
   $form = drupal_get_form('user_pass');
   unset($form['#theme']);
 
@@ -161,11 +162,6 @@ function theme_modallogin_reset_password($variables) {
     '#attributes' => array('class' => 'links'),
     '#weight' => 1000,
   );
-
-  // Hack to change the form action
-  // from modallogin/forms.
-  global $language;
-  $form['#action'] = '/' . $language->language;
 
   if (variable_get('user_register')) {
     $form['links']['register'] = array(

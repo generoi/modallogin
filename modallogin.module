@@ -73,6 +73,7 @@ function modallogin_refresh_form() {
   }
   $forms = array();
   foreach ($_POST['forms'] as $form) {
+    module_load_include('inc', 'user', 'user.pages');
     $form_id = check_plain($form['form_id']);
     $form = drupal_get_form($form_id);
     $forms[] = array('id' => $form['#id'], 'form_id' => $form_id, 'build_id' => $form['#build_id']);
