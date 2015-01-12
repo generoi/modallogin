@@ -9,7 +9,7 @@
       // Ajax load forms.
       $(document).on('ready', function () {
         $.ajax({
-          url: '/modallogin/forms',
+          url: Drupal.settings.basePath + Drupal.settings.pathPrefix + 'modallogin/forms',
           dataType: 'html'
         })
         .done(function(data) {
