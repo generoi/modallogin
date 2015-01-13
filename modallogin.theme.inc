@@ -67,6 +67,8 @@ function theme_modallogin_login($variables) {
   // Dont use the template faile.
   unset($form['#theme']);
 
+  $form['#action'] = url('user');
+
   $form['links'] = array(
     '#type' => 'container',
     '#attributes' => array('class' => 'links'),
@@ -119,6 +121,8 @@ function theme_modallogin_register($variables) {
   // $form['account']['pass']['#access'] = FALSE;
   // $form['#submit'] = array('modallogin_user_register_submit');
 
+  $form['#action'] = url('user/register');
+
   $form['links'] = array(
     '#type' => 'container',
     '#attributes' => array('class' => 'links'),
@@ -156,6 +160,8 @@ function theme_modallogin_reset_password($variables) {
   module_load_include('inc', 'user', 'user.pages');
   $form = drupal_get_form('user_pass');
   unset($form['#theme']);
+
+  $form['#action'] = url('user/password');
 
   $form['links'] = array(
     '#type' => 'container',
